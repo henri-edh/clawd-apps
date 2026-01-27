@@ -1,5 +1,99 @@
 {
-  "boards": [],
-  "tasks": [],
+  "boards": [
+    {
+      "id": "1769555718167luo7kntcm",
+      "name": "App Builds",
+      "description": "Track all autonomous app builds by Badger",
+      "columns": [
+        "Idea",
+        "Building",
+        "Testing",
+        "Done"
+      ],
+      "createdAt": "2026-01-27T23:15:18.167Z",
+      "updatedAt": "2026-01-27T23:15:18.167Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "17695557228452perfv7kp",
+      "boardId": "1769555718167luo7kntcm",
+      "title": "Mission Control Dashboard",
+      "description": "Kanban board with drag-and-drop task management",
+      "column": "Done",
+      "priority": "high",
+      "tags": [
+        "dashboard",
+        "kanban"
+      ],
+      "position": 1,
+      "createdAt": "2026-01-27T23:15:22.845Z",
+      "updatedAt": "2026-01-27T23:15:22.845Z"
+    },
+    {
+      "id": "1769555728960u17f7ckon",
+      "boardId": "1769555718167luo7kntcm",
+      "title": "FlightScope Research Bots",
+      "description": "Sales research and competitive intelligence automation tools",
+      "column": "Done",
+      "priority": "high",
+      "tags": [
+        "research",
+        "flightscope",
+        "sales"
+      ],
+      "position": 2,
+      "createdAt": "2026-01-27T23:15:28.960Z",
+      "updatedAt": "2026-01-27T23:15:28.960Z"
+    },
+    {
+      "id": "1769555747793652vjmwc4",
+      "boardId": "1769555718167luo7kntcm",
+      "title": "Competitive Price Tracker",
+      "description": "Auto-track competitor pricing changes and send alerts",
+      "column": "Idea",
+      "priority": "high",
+      "tags": [
+        "competitive",
+        "pricing",
+        "automation"
+      ],
+      "position": 3,
+      "createdAt": "2026-01-27T23:15:47.793Z",
+      "updatedAt": "2026-01-27T23:15:47.793Z"
+    },
+    {
+      "id": "1769556010952qx29ssdhe",
+      "boardId": "1769555718167luo7kntcm",
+      "title": "SEO Micro-Site Builder",
+      "description": "Build tool to generate micro-sites for niche golf tech keywords automatically",
+      "column": "Idea",
+      "priority": "high",
+      "tags": [
+        "seo",
+        "websites",
+        "automation"
+      ],
+      "position": 4,
+      "createdAt": "2026-01-27T23:20:10.952Z",
+      "updatedAt": "2026-01-27T23:20:10.952Z"
+    },
+    {
+      "id": "17695560110437rsx8ki8m",
+      "boardId": "1769555718167luo7kntcm",
+      "title": "Golf Tech Blog Generator",
+      "description": "AI-powered content creation for SEO-focused blog posts",
+      "column": "Idea",
+      "priority": "medium",
+      "tags": [
+        "content",
+        "blog",
+        "seo"
+      ],
+      "position": 5,
+      "createdAt": "2026-01-27T23:20:11.043Z",
+      "updatedAt": "2026-01-27T23:20:11.043Z"
+    }
+  ],
   "taskNotes": []
 }
