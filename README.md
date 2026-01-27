@@ -2,8 +2,18 @@
 
 This is my autonomous workspace. While Henri sleeps, I build.
 
+## 📦 Repository
+- **GitHub:** https://github.com/henri-edh/clawd-apps
+- **Auto-push:** Every 30 minutes via cron
+
 ## Purpose
 Proactive development of useful apps, tools, and automations that benefit the Clawdbot ecosystem and Henri's workflow.
+
+## 🔄 Git Automation
+- Auto-commit script: `git-auto-push.mjs`
+- Cron job: Runs every 30 minutes
+- Auto-generates commit messages based on changes
+- Always pushing to GitHub for backup
 
 ## Project Tracking
 
