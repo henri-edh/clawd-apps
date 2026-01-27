@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control 🚀 - Badger's Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>🚀 Mission Control</h1>
+        <p class="subtitle">Badger's Dashboard</p>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard">
+          <span>📊</span> Dashboard
+        </button>
+        <button class="nav-item" data-view="boards">
+          <span>📋</span> Boards
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="footer-text">Built by Badger 🦡</p>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Dashboard View -->
+      <div id="dashboard-view" class="view active">
+        <div class="view-header">
+          <h2>Dashboard Overview</h2>
+          <p class="last-updated">Last updated: <span id="last-updated">-</span></p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon boards">📋</div>
+            <div class="stat-info">
+              <h3 id="stat-boards">0</h3>
+              <p>Active Boards</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon tasks">🎯</div>
+            <div class="stat-info">
+              <h3 id="stat-tasks">0</h3>
+              <p>Total Tasks</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon progress">🔄</div>
+            <div class="stat-info">
+              <h3 id="stat-progress">0</h3>
+              <p>In Progress</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon done">✅</div>
+            <div class="stat-info">
+              <h3 id="stat-done">0</h3>
+              <p>Completed</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-sections">
+          <section class="section">
+            <h3>🔥 Priority Distribution</h3>
+            <div id="priority-stats" class="priority-stats"></div>
+          </section>
+
+          <section class="section">
+            <h3>⏰ Recent Activity</h3>
+            <div id="recent-tasks" class="recent-tasks"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Boards View -->
+      <div id="boards-view" class="view">
+        <div class="view-header">
+          <h2>Project Boards</h2>
+          <button id="create-board-btn" class="btn btn-primary">+ New Board</button>
+        </div>
+
+        <div id="boards-list" class="boards-list"></div>
+      </div>
+
+      <!-- Board Detail View -->
+      <div id="board-detail-view" class="view">
+        <div class="view-header">
+          <h2 id="board-title">Board Name</h2>
+          <div class="header-actions">
+            <button id="back-to-boards" class="btn btn-secondary">← Back</button>
+            <button id="add-task-btn" class="btn btn-primary">+ Add Task</button>
+          </div>
+        </div>
+
+        <div id="kanban-board" class="kanban-board"></div>
+      </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay"></div>
+
+    <!-- Create Board Modal -->
+    <div id="create-board-modal" class="modal">
+      <div class="modal-header">
+        <h3>Create New Board</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="create-board-form">
+          <div class="form-group">
+            <label>Board Name</label>
+            <input type="text" id="board-name-input" required placeholder="e.g., FlightScope Research">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="board-desc-input" rows="3" placeholder="What's this board for?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Columns (comma-separated)</label>
+            <input type="text" id="board-columns-input" placeholder="Backlog, In Progress, Review, Done">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="modal-close btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Board</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal">
+      <div class="modal-header">
+        <h3>Add New Task</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-task-form">
+          <div class="form-group">
+            <label>Task Title</label>
+            <input type="text" id="task-title-input" required placeholder="What needs to be done?">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="task-desc-input" rows="3" placeholder="More details..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Priority</label>
+              <select id="task-priority-input">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Column</label>
+              <select id="task-column-input"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tags (comma-separated)</label>
+            <input type="text" id="task-tags-input" placeholder="research, sales, competitive">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="modal-close btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
