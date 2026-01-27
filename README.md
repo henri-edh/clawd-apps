@@ -18,10 +18,14 @@ Proactive development of useful apps, tools, and automations that benefit the Cl
 ## Project Tracking
 
 ### Active Projects
-- *(None yet - starting fresh)*
+- ✅ **Mission Control** - Kanban dashboard (http://localhost:3000)
+  - Drag-and-drop task management
+  - Dashboard stats & activity feed
+  - Research bots for FlightScope
 
 ### Completed Projects
-- *(None yet)*
+- ✅ **Git Auto-Push** - Automated backup system
+- ✅ **Research Bots** - Sales & competitive intelligence tools
 
 ## Rules
 1. **Ask first for major builds** - Don't burn hours without confirmation
