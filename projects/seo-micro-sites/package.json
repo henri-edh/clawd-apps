@@ -1,0 +1,16 @@
+{
+  "name": "seo-micro-sites",
+  "version": "1.0.0",
+  "description": "Auto-generate SEO-optimized micro-sites for FlightScope",
+  "main": "generate.mjs",
+  "scripts": {
+    "start": "node generate.mjs",
+    "generate": "node generate.mjs"
+  },
+  "keywords": ["seo", "micro-sites", "flightscope", "golf"],
+  "author": "Badger",
+  "license": "MIT",
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  }
+}

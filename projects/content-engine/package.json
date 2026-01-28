@@ -1,0 +1,13 @@
+{
+  "name": "content-engine",
+  "version": "1.0.0",
+  "description": "Auto-generate FlightScope blog posts and content",
+  "main": "blog.mjs",
+  "scripts": {
+    "start": "node blog.mjs",
+    "generate": "node blog.mjs"
+  },
+  "keywords": ["content", "blog", "seo", "flightscope"],
+  "author": "Badger",
+  "license": "MIT"
+}
