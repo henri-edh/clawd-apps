@@ -14,12 +14,79 @@ const { JSONFile } = require('lowdb/node');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'database', 'mission-control.json');
+const BACKUP_DIR = path.join(__dirname, 'database', 'backups');
 
 // Ensure database directory exists
 const fs = require('fs');
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Ensure backups directory exists
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+// Backup functions
+function getBackupFileName() {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+  return `mission-control-${dateStr}-${timeStr}.json`;
+}
+
+function createBackup() {
+  try {
+    const backupPath = path.join(BACKUP_DIR, getBackupFileName());
+    fs.copyFileSync(DB_PATH, backupPath);
+    console.log(`✅ Backup created: ${path.basename(backupPath)}`);
+
+    // Clean old backups (keep last 7 days)
+    cleanOldBackups();
+  } catch (error) {
+    console.error('❌ Backup failed:', error.message);
+  }
+}
+
+function cleanOldBackups() {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('mission-control-') && f.endsWith('.json'))
+      .map(f => ({
+        name: f,
+        path: path.join(BACKUP_DIR, f),
+        time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime()
+      }))
+      .sort((a, b) => b.time - a.time); // Newest first
+
+    // Keep last 7 backups
+    const filesToDelete = files.slice(7);
+    filesToDelete.forEach(file => {
+      fs.unlinkSync(file.path);
+      console.log(`🗑️ Deleted old backup: ${file.name}`);
+    });
+  } catch (error) {
+    console.error('❌ Backup cleanup failed:', error.message);
+  }
+}
+
+function scheduleDailyBackup() {
+  // Backup every day at midnight
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  const msUntilMidnight = tomorrow - now;
+
+  setTimeout(() => {
+    createBackup();
+    // Schedule every 24 hours
+    setInterval(createBackup, 24 * 60 * 60 * 1000);
+  }, msUntilMidnight);
+
+  console.log(`⏰ Daily backup scheduled for ${tomorrow.toISOString()}`);
 }
 
 // Initialize LowDB
@@ -232,8 +299,127 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// API: Export all data
+app.get('/api/export', (req, res) => {
+  db.read();
+  const exportData = {
+    version: '1.0',
+    exportedAt: getCurrentTimestamp(),
+    data: {
+      boards: db.data.boards || [],
+      tasks: db.data.tasks || [],
+      taskNotes: db.data.taskNotes || []
+    }
+  };
+
+  const filename = `mission-control-export-${getCurrentTimestamp().replace(/[:.]/g, '-')}.json`;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.json(exportData);
+});
+
+// API: Import data
+app.post('/api/import', (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ error: 'Invalid import data format' });
+    }
+
+    // Create a backup before importing
+    createBackup();
+
+    db.read();
+    db.data = {
+      boards: data.boards || [],
+      tasks: data.tasks || [],
+      taskNotes: data.taskNotes || []
+    };
+    db.write();
+
+    console.log(`✅ Data imported: ${db.data.boards.length} boards, ${db.data.tasks.length} tasks`);
+    res.json({
+      success: true,
+      imported: {
+        boards: db.data.boards.length,
+        tasks: db.data.tasks.length,
+        notes: db.data.taskNotes.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Import failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: List backups
+app.get('/api/backups', (req, res) => {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('mission-control-') && f.endsWith('.json'))
+      .map(f => {
+        const filePath = path.join(BACKUP_DIR, f);
+        const stats = fs.statSync(filePath);
+        return {
+          name: f,
+          size: stats.size,
+          createdAt: stats.mtime.toISOString()
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ backups: files });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Restore from backup
+app.post('/api/backups/:filename/restore', (req, res) => {
+  try {
+    const backupPath = path.join(BACKUP_DIR, req.params.filename);
+
+    if (!fs.existsSync(backupPath)) {
+      return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    // Create backup of current state before restoring
+    createBackup();
+
+    const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+
+    db.read();
+    db.data = {
+      boards: backupData.boards || [],
+      tasks: backupData.tasks || [],
+      taskNotes: backupData.taskNotes || []
+    };
+    db.write();
+
+    console.log(`✅ Restored from backup: ${req.params.filename}`);
+    res.json({
+      success: true,
+      restored: {
+        boards: db.data.boards.length,
+        tasks: db.data.tasks.length,
+        notes: db.data.taskNotes.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Restore failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Mission Control running at http://localhost:${PORT}`);
   console.log(`🦡 Badger at your service`);
+
+  // Schedule daily backups
+  scheduleDailyBackup();
+
+  // Create initial backup on startup
+  createBackup();
 });

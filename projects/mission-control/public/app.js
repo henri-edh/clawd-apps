@@ -31,7 +31,14 @@ const elements = {
   createBoardModal: document.getElementById('create-board-modal'),
   addTaskModal: document.getElementById('add-task-modal'),
   createBoardForm: document.getElementById('create-board-form'),
-  addTaskForm: document.getElementById('add-task-form')
+  addTaskForm: document.getElementById('add-task-form'),
+  exportBtn: document.getElementById('export-btn'),
+  importBtn: document.getElementById('import-btn'),
+  backupsBtn: document.getElementById('backups-btn'),
+  importModal: document.getElementById('import-modal'),
+  backupsModal: document.getElementById('backups-modal'),
+  importForm: document.getElementById('import-form'),
+  backupsList: document.getElementById('backups-list')
 };
 
 // Navigation
@@ -312,3 +319,171 @@ elements.addTaskForm.addEventListener('submit', async (e) => {
 // Initialize
 loadDashboard();
 setInterval(loadDashboard, 60000); // Refresh dashboard every minute
+
+// ============================
+// Export / Import / Backups
+// ============================
+
+// Export Data
+elements.exportBtn.addEventListener('click', async () => {
+  try {
+    const response = await fetch(`${API_BASE}/export`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mission-control-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    console.log('✅ Data exported successfully');
+  } catch (error) {
+    console.error('❌ Export failed:', error);
+    alert('Export failed: ' + error.message);
+  }
+});
+
+// Import Data
+elements.importBtn.addEventListener('click', () => openModal(elements.importModal));
+
+elements.importForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const fileInput = document.getElementById('import-file-input');
+  const file = fileInput.files[0];
+
+  if (!file) {
+    alert('Please select a file to import');
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    const response = await fetch(`${API_BASE}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert(`✅ Import successful!\n\nRestored: ${result.imported.boards} boards, ${result.imported.tasks} tasks, ${result.imported.notes} notes`);
+      elements.importForm.reset();
+      closeModal(elements.importModal);
+
+      // Refresh views
+      if (currentView === 'dashboard') loadDashboard();
+      if (currentView === 'boards') loadBoards();
+      if (currentBoard) openBoard(currentBoard.id);
+    } else {
+      alert('Import failed: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Import failed:', error);
+    alert('Import failed: ' + error.message);
+  }
+});
+
+// Backups
+elements.backupsBtn.addEventListener('click', async () => {
+  openModal(elements.backupsModal);
+  loadBackups();
+});
+
+async function loadBackups() {
+  try {
+    const response = await fetch(`${API_BASE}/backups`);
+    const { backups } = await response.json();
+
+    if (backups.length === 0) {
+      elements.backupsList.innerHTML = `
+        <div class="backups-empty">
+          <div style="font-size: 32px; margin-bottom: 12px;">🗂️</div>
+          <div>No backups yet</div>
+          <div style="font-size: 12px; margin-top: 8px;">Backups are created automatically every day</div>
+        </div>
+      `;
+      return;
+    }
+
+    elements.backupsList.innerHTML = backups.map(backup => {
+      const date = new Date(backup.createdAt);
+      const sizeKB = (backup.size / 1024).toFixed(1);
+
+      return `
+        <div class="backup-item">
+          <div class="backup-info">
+            <div class="backup-name">${backup.name}</div>
+            <div class="backup-meta">
+              ${date.toLocaleString()} • ${sizeKB} KB
+            </div>
+          </div>
+          <div class="backup-actions">
+            <button class="backup-btn restore" onclick="restoreBackup('${backup.name}')">
+              Restore
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Failed to load backups:', error);
+    elements.backupsList.innerHTML = `
+      <div class="backups-empty">
+        <div style="font-size: 32px; margin-bottom: 12px;">❌</div>
+        <div>Failed to load backups</div>
+        <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
+      </div>
+    `;
+  }
+}
+
+window.restoreBackup = async function(filename) {
+  if (!confirm(`Restore from backup: ${filename}?\n\nThis will replace all current data. A backup will be created first.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/backups/${filename}/restore`, {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert(`✅ Restore successful!\n\nRestored: ${result.restored.boards} boards, ${result.restored.tasks} tasks, ${result.restored.notes} notes`);
+      closeModal(elements.backupsModal);
+
+      // Refresh views
+      if (currentView === 'dashboard') loadDashboard();
+      if (currentView === 'boards') loadBoards();
+      if (currentBoard) openBoard(currentBoard.id);
+    } else {
+      alert('Restore failed: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Restore failed:', error);
+    alert('Restore failed: ' + error.message);
+  }
+};
+
+// Update modal close handlers to include new modals
+document.querySelectorAll('.modal-close').forEach(btn => {
+  btn.addEventListener('click', () => {
+    closeModal(elements.createBoardModal);
+    closeModal(elements.addTaskModal);
+    closeModal(elements.importModal);
+    closeModal(elements.backupsModal);
+  });
+});
+
+elements.modalOverlay.addEventListener('click', () => {
+  closeModal(elements.createBoardModal);
+  closeModal(elements.addTaskModal);
+  closeModal(elements.importModal);
+  closeModal(elements.backupsModal);
+});
