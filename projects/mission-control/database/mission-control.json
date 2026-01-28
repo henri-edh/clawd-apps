@@ -1,38 +1,5 @@
 {
   "boards": [],
-  "tasks": [
-    {
-      "id": "1769559482626g7va4z48g",
-      "boardId": "1769555718167luo7kntcm",
-      "title": "Buying Guide Generator - Best Launch Monitor Under $2,000",
-      "description": "Generate comprehensive buying guides for budget-conscious golfers",
-      "column": "Idea",
-      "priority": "high",
-      "tags": [
-        "content",
-        "guide",
-        "seo"
-      ],
-      "position": 1,
-      "createdAt": "2026-01-28T00:18:02.626Z",
-      "updatedAt": "2026-01-28T00:18:02.626Z"
-    },
-    {
-      "id": "1769559482726c7rmtvxhc",
-      "boardId": "1769555718167luo7kntcm",
-      "title": "Feature Deep Dives - Doppler vs Camera Technology",
-      "description": "Technical articles explaining why 3D Doppler radar beats camera systems",
-      "column": "Idea",
-      "priority": "medium",
-      "tags": [
-        "content",
-        "technical",
-        "education"
-      ],
-      "position": 2,
-      "createdAt": "2026-01-28T00:18:02.726Z",
-      "updatedAt": "2026-01-28T00:18:02.726Z"
-    }
-  ],
+  "tasks": [],
   "taskNotes": []
 }
