@@ -43,7 +43,7 @@ const COMPETITORS = {
 
 function generateBuyingGuide(pricePoint) {
   const date = new Date().toISOString().split('T')[0];
-  const PP = pricePoint;
+  const PP = pricePoint.replace(/\$/g, '').replace(/,/g, '');
   const mevoUrl = PRODUCTS.mevo_plus.url;
 
   const content = `---
@@ -188,7 +188,8 @@ Unless you have a very specific need that another product addresses better (like
 *Tags: launch monitor, ${PP}, golf, buying guide, comparison*
 `;
 
-  const filename = `best-launch-monitor-under-${PP.replace(/[^0-9,]/g, '')}-${date}.md`;
+  const safePrice = PP.replace(/\$/g, '').replace(/,/g, '');
+  const filename = `best-launch-monitor-under-${safePrice}-${date}.md`;
   return { content, filename };
 }
 
@@ -206,7 +207,7 @@ function saveGuide(content, filename) {
 }
 
 // CLI
-const pricePoint = process.argv[2];
+const pricePoint = process.argv[2]?.replace(/,/g, '');
 
 if (!pricePoint) {
   console.log('📝 Buying Guide Generator');
