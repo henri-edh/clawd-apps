@@ -110,11 +110,53 @@
           <h2 id="board-title">Board Name</h2>
           <div class="header-actions">
             <button id="back-to-boards" class="btn btn-secondary">← Back</button>
+            <button id="activity-toggle-btn" class="btn btn-secondary">📋 Activity</button>
             <button id="add-task-btn" class="btn btn-primary">+ Add Task</button>
           </div>
         </div>
 
+        <!-- Search and Filters -->
+        <div class="board-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="task-search" placeholder="Search tasks..." />
+          </div>
+          <div class="filters">
+            <select id="filter-priority" class="filter-select">
+              <option value="">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+            <select id="filter-column" class="filter-select">
+              <option value="">All Columns</option>
+            </select>
+            <button id="clear-filters" class="btn btn-secondary btn-small">Clear</button>
+          </div>
+        </div>
+
+        <!-- Active Tags Filter -->
+        <div id="active-tags" class="active-tags"></div>
+
+        <!-- Keyboard Shortcuts Hint -->
+        <div class="shortcuts-hint">
+          <span class="shortcut">N</span> New Task &nbsp;
+          <span class="shortcut">Esc</span> Close Modal &nbsp;
+          <span class="shortcut">B</span> Back &nbsp;
+          <span class="shortcut">R</span> Refresh
+        </div>
+
         <div id="kanban-board" class="kanban-board"></div>
+
+        <!-- Activity Feed Panel -->
+        <div id="activity-panel" class="activity-panel hidden">
+          <div class="activity-panel-header">
+            <h3>📋 Activity Feed</h3>
+            <button id="close-activity" class="btn btn-secondary btn-small">✕</button>
+          </div>
+          <div id="activity-list" class="activity-list"></div>
+        </div>
       </div>
     </main>
 
@@ -180,9 +222,15 @@
               <select id="task-column-input"></select>
             </div>
           </div>
-          <div class="form-group">
-            <label>Tags (comma-separated)</label>
-            <input type="text" id="task-tags-input" placeholder="research, sales, competitive">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Due Date</label>
+              <input type="date" id="task-duedate-input">
+            </div>
+            <div class="form-group">
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="task-tags-input" placeholder="research, sales, competitive">
+            </div>
           </div>
           <div class="form-actions">
             <button type="button" class="modal-close btn btn-secondary">Cancel</button>
@@ -226,6 +274,167 @@
         <div class="form-actions">
           <button type="button" class="modal-close btn btn-secondary">Close</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div id="edit-task-modal" class="modal">
+      <div class="modal-header">
+        <h3>Edit Task</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-task-form">
+          <input type="hidden" id="edit-task-id">
+          <div class="form-group">
+            <label>Task Title</label>
+            <input type="text" id="edit-task-title" required>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="edit-task-desc" rows="4"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Priority</label>
+              <select id="edit-task-priority">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Column</label>
+              <select id="edit-task-column"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Due Date</label>
+            <input type="date" id="edit-task-duedate">
+          </div>
+          <div class="form-group">
+            <label>Tags (comma-separated)</label>
+            <input type="text" id="edit-task-tags">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="modal-close btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="task-detail-modal" class="modal modal-large">
+      <div class="modal-header">
+        <h3 id="task-detail-title">Task Details</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="task-detail-content">
+          <div class="task-detail-main">
+            <div class="task-detail-meta">
+              <span id="task-detail-priority" class="priority-badge"></span>
+              <span id="task-detail-column" class="column-badge"></span>
+              <span id="task-detail-duedate" class="duedate-badge"></span>
+            </div>
+            <div id="task-detail-tags" class="task-detail-tags"></div>
+            <div id="task-detail-desc" class="task-detail-desc"></div>
+
+            <!-- Subtasks Section -->
+            <div class="task-detail-section">
+              <div class="task-detail-section-header">
+                <h4>✅ Subtasks</h4>
+                <button type="button" id="add-subtask-btn" class="btn btn-secondary btn-small">+ Add</button>
+              </div>
+              <div id="subtasks-list" class="subtasks-list"></div>
+              <form id="add-subtask-form" class="add-subtask-form hidden">
+                <input type="text" id="new-subtask-input" placeholder="New subtask..." required>
+                <button type="submit" class="btn btn-primary btn-small">Add</button>
+                <button type="button" id="cancel-subtask-btn" class="btn btn-secondary btn-small">Cancel</button>
+              </form>
+            </div>
+
+            <!-- Notes Section -->
+            <div class="task-detail-section">
+              <h4>📝 Notes</h4>
+              <div id="task-notes-list" class="task-notes-list"></div>
+              <form id="add-note-form">
+                <textarea id="new-note-input" placeholder="Add a note..." rows="2" required></textarea>
+                <button type="submit" class="btn btn-primary btn-small">Add Note</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="task-detail-sidebar">
+            <div class="task-detail-actions">
+              <button id="edit-current-task-btn" class="btn btn-primary">✏️ Edit Task</button>
+              <button id="delete-current-task-btn" class="btn btn-danger">🗑️ Delete Task</button>
+            </div>
+            <div class="task-detail-info">
+              <p><strong>Created:</strong> <span id="task-detail-created"></span></p>
+              <p><strong>Updated:</strong> <span id="task-detail-updated"></span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Board Settings Modal -->
+    <div id="board-settings-modal" class="modal">
+      <div class="modal-header">
+        <h3>Board Settings</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="board-settings-form">
+          <div class="form-group">
+            <label>Board Name</label>
+            <input type="text" id="settings-board-name" required>
+          </div>
+          <div class="form-group">
+            <label>Columns</label>
+            <div id="settings-columns-list" class="settings-columns-list"></div>
+            <button type="button" id="add-column-btn" class="btn btn-secondary btn-small">+ Add Column</button>
+          </div>
+          <div class="form-group">
+            <label>WIP Limits (tasks per column)</label>
+            <div id="settings-wip-list" class="settings-wip-list"></div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="modal-close btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Column Modal -->
+    <div id="add-column-modal" class="modal">
+      <div class="modal-header">
+        <h3>Add Column</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-column-form">
+          <div class="form-group">
+            <label>Column Name</label>
+            <input type="text" id="new-column-name" required placeholder="e.g., Testing">
+          </div>
+          <div class="form-group">
+            <label>Position</label>
+            <select id="new-column-position"></select>
+          </div>
+          <div class="form-group">
+            <label>WIP Limit (optional)</label>
+            <input type="number" id="new-column-wip" min="1" placeholder="Leave empty for no limit">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="modal-close btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Column</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

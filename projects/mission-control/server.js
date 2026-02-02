@@ -94,7 +94,8 @@ const adapter = new JSONFile(DB_PATH);
 const db = new Low(adapter, {
   boards: [],
   tasks: [],
-  taskNotes: []
+  taskNotes: [],
+  activities: []
 });
 
 // Initialize database with default data
@@ -102,7 +103,8 @@ db.read();
 db.data = db.data || {
   boards: [],
   tasks: [],
-  taskNotes: []
+  taskNotes: [],
+  activities: []
 };
 db.write();
 
@@ -118,6 +120,28 @@ function generateId() {
 
 function getCurrentTimestamp() {
   return new Date().toISOString();
+}
+
+// Activity logging
+function logActivity(boardId, action, details) {
+  db.read();
+  const activity = {
+    id: generateId(),
+    boardId,
+    action,
+    details,
+    timestamp: getCurrentTimestamp()
+  };
+  db.data.activities = db.data.activities || [];
+  db.data.activities.push(activity);
+
+  // Keep only last 100 activities per board
+  const boardActivities = db.data.activities.filter(a => a.boardId === boardId);
+  if (boardActivities.length > 100) {
+    db.data.activities = db.data.activities.filter(a => a.boardId !== boardId)
+      .concat(boardActivities.slice(-100));
+  }
+  db.write();
 }
 
 // API: Boards
@@ -177,7 +201,7 @@ app.get('/api/boards/:boardId/tasks', (req, res) => {
 
 app.post('/api/boards/:boardId/tasks', (req, res) => {
   db.read();
-  const { title, description, column, priority, tags, position } = req.body;
+  const { title, description, column, priority, tags, position, dueDate, subtasks } = req.body;
 
   const boardTasks = (db.data.tasks || []).filter(t => t.boardId === req.params.boardId);
   const maxPos = Math.max(0, ...boardTasks.map(t => t.position || 0));
@@ -192,29 +216,53 @@ app.post('/api/boards/:boardId/tasks', (req, res) => {
     priority: priority || 'medium',
     tags: tags || [],
     position: newPos,
+    dueDate: dueDate || null,
+    subtasks: subtasks || [],
     createdAt: getCurrentTimestamp(),
     updatedAt: getCurrentTimestamp()
   };
 
   db.data.tasks.push(task);
   db.write();
+
+  // Log activity
+  logActivity(req.params.boardId, 'task_created', {
+    taskId: task.id,
+    title: task.title,
+    column: task.column
+  });
+
   res.json({ id: task.id });
 });
 
 app.put('/api/tasks/:id', (req, res) => {
   db.read();
-  const { title, description, column, priority, tags, position } = req.body;
+  const { title, description, column, priority, tags, position, dueDate, subtasks } = req.body;
 
   const task = db.data.tasks.find(t => t.id === req.params.id);
   if (task) {
+    const oldColumn = task.column;
+
     task.title = title;
     task.description = description || '';
     task.column = column;
     task.priority = priority || 'medium';
     task.tags = tags || [];
     if (position !== undefined) task.position = position;
+    if (dueDate !== undefined) task.dueDate = dueDate;
+    if (subtasks !== undefined) task.subtasks = subtasks;
     task.updatedAt = getCurrentTimestamp();
     db.write();
+
+    // Log activity if column changed
+    if (oldColumn !== column) {
+      logActivity(task.boardId, 'task_moved', {
+        taskId: task.id,
+        title: task.title,
+        from: oldColumn,
+        to: column
+      });
+    }
   }
   res.json({ success: true });
 });
@@ -256,6 +304,122 @@ app.delete('/api/notes/:id', (req, res) => {
   db.data.taskNotes = db.data.taskNotes.filter(n => n.id !== req.params.id);
   db.write();
   res.json({ success: true });
+});
+
+// API: Activity feed
+app.get('/api/boards/:boardId/activities', (req, res) => {
+  db.read();
+  const activities = (db.data.activities || [])
+    .filter(a => a.boardId === req.params.boardId)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 50); // Last 50 activities
+  res.json(activities);
+});
+
+// API: Subtask management
+app.post('/api/tasks/:taskId/subtasks', (req, res) => {
+  db.read();
+  const { title } = req.body;
+
+  const task = db.data.tasks.find(t => t.id === req.params.taskId);
+  if (task) {
+    const subtask = {
+      id: generateId(),
+      title,
+      completed: false,
+      createdAt: getCurrentTimestamp()
+    };
+    task.subtasks = task.subtasks || [];
+    task.subtasks.push(subtask);
+    task.updatedAt = getCurrentTimestamp();
+    db.write();
+    res.json({ id: subtask.id });
+  } else {
+    res.status(404).json({ error: 'Task not found' });
+  }
+});
+
+app.put('/api/subtasks/:subtaskId', (req, res) => {
+  db.read();
+  const { title, completed } = req.body;
+
+  for (const task of db.data.tasks) {
+    if (task.subtasks) {
+      const subtask = task.subtasks.find(s => s.id === req.params.subtaskId);
+      if (subtask) {
+        if (title !== undefined) subtask.title = title;
+        if (completed !== undefined) subtask.completed = completed;
+        task.updatedAt = getCurrentTimestamp();
+        db.write();
+        return res.json({ success: true });
+      }
+    }
+  }
+  res.status(404).json({ error: 'Subtask not found' });
+});
+
+app.delete('/api/subtasks/:subtaskId', (req, res) => {
+  db.read();
+  for (const task of db.data.tasks) {
+    if (task.subtasks) {
+      const index = task.subtasks.findIndex(s => s.id === req.params.subtaskId);
+      if (index !== -1) {
+        task.subtasks.splice(index, 1);
+        task.updatedAt = getCurrentTimestamp();
+        db.write();
+        return res.json({ success: true });
+      }
+    }
+  }
+  res.status(404).json({ error: 'Subtask not found' });
+});
+
+// API: Column management
+app.put('/api/boards/:boardId/columns', (req, res) => {
+  db.read();
+  const { columns } = req.body;
+
+  const board = db.data.boards.find(b => b.id === req.params.boardId);
+  if (board) {
+    board.columns = columns || board.columns;
+    board.updatedAt = getCurrentTimestamp();
+    db.write();
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/boards/:boardId/columns', (req, res) => {
+  db.read();
+  const { name, position } = req.body;
+
+  const board = db.data.boards.find(b => b.id === req.params.boardId);
+  if (board) {
+    const newColumns = [...board.columns];
+    if (position !== undefined && position >= 0 && position <= newColumns.length) {
+      newColumns.splice(position, 0, name);
+    } else {
+      newColumns.push(name);
+    }
+    board.columns = newColumns;
+    board.updatedAt = getCurrentTimestamp();
+    db.write();
+    res.json({ success: true, columns: board.columns });
+  } else {
+    res.status(404).json({ error: 'Board not found' });
+  }
+});
+
+app.delete('/api/boards/:boardId/columns/:columnName', (req, res) => {
+  db.read();
+  const board = db.data.boards.find(b => b.id === req.params.boardId);
+  if (board) {
+    board.columns = board.columns.filter(c => c !== req.params.columnName);
+    board.updatedAt = getCurrentTimestamp();
+    db.write();
+    res.json({ success: true, columns: board.columns });
+  } else {
+    res.status(404).json({ error: 'Board not found' });
+  }
 });
 
 // API: Dashboard stats
@@ -308,7 +472,8 @@ app.get('/api/export', (req, res) => {
     data: {
       boards: db.data.boards || [],
       tasks: db.data.tasks || [],
-      taskNotes: db.data.taskNotes || []
+      taskNotes: db.data.taskNotes || [],
+      activities: db.data.activities || []
     }
   };
 
@@ -334,7 +499,8 @@ app.post('/api/import', (req, res) => {
     db.data = {
       boards: data.boards || [],
       tasks: data.tasks || [],
-      taskNotes: data.taskNotes || []
+      taskNotes: data.taskNotes || [],
+      activities: data.activities || []
     };
     db.write();
 
@@ -393,7 +559,8 @@ app.post('/api/backups/:filename/restore', (req, res) => {
     db.data = {
       boards: backupData.boards || [],
       tasks: backupData.tasks || [],
-      taskNotes: backupData.taskNotes || []
+      taskNotes: backupData.taskNotes || [],
+      activities: backupData.activities || []
     };
     db.write();
 
